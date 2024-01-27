@@ -151,7 +151,6 @@ export default class GHSyncPlugin extends Plugin {
 			}
 		} catch (e) {
 			// don't care
-			new Notice(e)
 		}
 	}
 
