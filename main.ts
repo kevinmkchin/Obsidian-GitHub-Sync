@@ -144,6 +144,10 @@ export default class GHSyncPlugin extends Plugin {
 			git = simpleGit(simpleGitOptions);
 
 			//check for remote changes
+			let branchresult = await git.branch();
+			let currentbranchname = branchresult.current;
+			// git branch --set-upstream-to=origin/main main
+			await git.branch({'--set-upstream-to': 'origin/'+currentbranchname});
 			let statusUponOpening = await git.fetch().status();
 			if (statusUponOpening.behind > 0)
 			{
