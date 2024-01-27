@@ -1,12 +1,15 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { simpleGit, SimpleGit, CleanOptions } from 'simple-git';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Vault } from 'obsidian';
+import { simpleGit, SimpleGit, CleanOptions, SimpleGitOptions } from 'simple-git';
 
 var simpleGitOptions: Partial<SimpleGitOptions>;
 var git: SimpleGit;
 
 
 interface GHSyncSettings {
+	ghUsername: string;
 	ghPersonalAccessToken: string;
+	ghRepoUrl: string;
+	gitLocation: string;
 }
 
 const DEFAULT_SETTINGS: GHSyncSettings = {
@@ -30,6 +33,7 @@ export default class GHSyncPlugin extends Plugin {
 		const remote = `https://${USER}:${PAT}@${REPO}`;
 
 		simpleGitOptions = {
+			//@ts-ignore
 		    baseDir: this.app.vault.adapter.getBasePath(),
 		    binary: this.settings.gitLocation,
 		    maxConcurrentProcesses: 6,
@@ -41,6 +45,7 @@ export default class GHSyncPlugin extends Plugin {
 		let hostname = os.hostname();
 
 		let statusResult = await git.status().catch((e) => { new Notice("Vault is not a Git repo or git binary cannot be found."); return; })
+		//@ts-ignore
 		let clean = statusResult.isClean();
 
     	let date = new Date();
@@ -83,6 +88,7 @@ export default class GHSyncPlugin extends Plugin {
 
 		// git pull origin main
 	    try {
+	    	//@ts-ignore
 	    	await git.pull('origin', 'main', (err, update) => {
 	      		if (update) {
 					new Notice("GitHub Sync: Pulled " + update.summary.changes + " changes");
@@ -91,12 +97,14 @@ export default class GHSyncPlugin extends Plugin {
 	    } catch (e) {
 	    	let conflictStatus = await git.status().catch((e) => { new Notice("Somethings fucked."); return; });
 	    	let conflictMsg = "Merge conflicts in:";
+	    	//@ts-ignore
 			for (let c of conflictStatus.conflicted)
 			{
 				conflictMsg += "\n\t"+c;
 			}
 			conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
 			new Notice(conflictMsg)
+			//@ts-ignore	
 			for (let c of conflictStatus.conflicted)
 			{
 				this.app.workspace.openLinkText("", c, true);
@@ -136,6 +144,7 @@ export default class GHSyncPlugin extends Plugin {
 			const remote = `https://${USER}:${PAT}@${REPO}`;
 
 			simpleGitOptions = {
+				//@ts-ignore
 			    baseDir: this.app.vault.adapter.getBasePath(),
 			    binary: this.settings.gitLocation,
 			    maxConcurrentProcesses: 6,
