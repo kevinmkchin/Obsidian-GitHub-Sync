@@ -1,8 +1,8 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Vault } from 'obsidian';
 import { simpleGit, SimpleGit, CleanOptions, SimpleGitOptions } from 'simple-git';
 
-var simpleGitOptions: Partial<SimpleGitOptions>;
-var git: SimpleGit;
+let simpleGitOptions: Partial<SimpleGitOptions>;
+let git: SimpleGit;
 
 
 interface GHSyncSettings {
@@ -89,7 +89,7 @@ export default class GHSyncPlugin extends Plugin {
 		// git pull origin main
 	    try {
 	    	//@ts-ignore
-	    	await git.pull('origin', 'main', (err, update) => {
+	    	await git.pull('origin', 'main', { '--no-rebase': null }, (err, update) => {
 	      		if (update) {
 					new Notice("GitHub Sync: Pulled " + update.summary.changes + " changes");
 	      		}
