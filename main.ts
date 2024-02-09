@@ -95,7 +95,7 @@ export default class GHSyncPlugin extends Plugin {
 	      		}
 	   		})
 	    } catch (e) {
-	    	let conflictStatus = await git.status().catch((e) => { new Notice("Somethings fucked."); return; });
+	    	let conflictStatus = await git.status().catch((e) => { new Notice(e); return; });
 	    	let conflictMsg = "Merge conflicts in:";
 	    	//@ts-ignore
 			for (let c of conflictStatus.conflicted)
@@ -194,7 +194,7 @@ class GHSyncSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('GitHub Username')
+			.setName('GitHub username')
 			.setDesc('')
 			.addText(text => text
 				.setPlaceholder('')
@@ -205,7 +205,7 @@ class GHSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('GitHub Personal Access Token')
+			.setName('GitHub personal access token')
 			.setDesc('')
 			.addText(text => text
 				.setPlaceholder('ghp_XXXXXXXXXXXXXXXXXXXXXXXX')
@@ -216,7 +216,7 @@ class GHSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('GitHub Repo URL for this Vault')
+			.setName('GitHub repo URL for this vault')
 			.setDesc('In this format: "github.com/username/repo"')
 			.addText(text => text
 				.setPlaceholder('')
@@ -227,7 +227,7 @@ class GHSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('git Binary Location (Optional)')
+			.setName('git binary location (optional)')
 			.setDesc('If git is not findable via your system PATH, then provide its directory here')
 			.addText(text => text
 				.setPlaceholder('')
