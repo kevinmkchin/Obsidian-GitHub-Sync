@@ -1,5 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Vault } from 'obsidian';
 import { simpleGit, SimpleGit, CleanOptions, SimpleGitOptions } from 'simple-git';
+import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async';
 
 let simpleGitOptions: Partial<SimpleGitOptions>;
 let git: SimpleGit;
@@ -10,13 +11,15 @@ interface GHSyncSettings {
 	ghPersonalAccessToken: string;
 	ghRepoUrl: string;
 	gitLocation: string;
+	syncinterval: number;
 }
 
 const DEFAULT_SETTINGS: GHSyncSettings = {
 	ghUsername: '',
 	ghPersonalAccessToken: '',
 	ghRepoUrl: '',
-	gitLocation: ''
+	gitLocation: '',
+	syncinterval: 0
 }
 
 
@@ -136,6 +139,23 @@ export default class GHSyncPlugin extends Plugin {
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new GHSyncSettingTab(this.app, this));
 
+		if (!isNaN(this.settings.syncinterval))
+		{
+			let interval: number = this.settings.syncinterval;
+			if (interval >= 1)
+			{
+				try {
+					setIntervalAsync(async () => {
+						await this.SyncNotes();
+					}, interval * 60 * 1000);
+					//this.registerInterval(setInterval(this.SyncNotes, interval * 6 * 1000));
+					new Notice("Auto sync enabled");
+				} catch (e) {
+					
+				}
+			}
+		}
+
 		// check status
 		try {
 			const USER = this.settings.ghUsername;
@@ -234,6 +254,16 @@ class GHSyncSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.gitLocation)
 				.onChange(async (value) => {
 					this.plugin.settings.gitLocation = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Auto sync at interval (optional)')
+			.setDesc('Set a positive integer minute interval after which your vault is synced automatically. Auto sync is disabled if this field is left empty or not a positive integer. Restart Obsidan to take effect.')
+			.addText(text => text
+				.setValue(String(this.plugin.settings.syncinterval))
+				.onChange(async (value) => {
+					this.plugin.settings.syncinterval = Number(value);
 					await this.plugin.saveSettings();
 				}));
 	}

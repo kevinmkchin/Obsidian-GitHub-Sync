@@ -22,6 +22,7 @@
 		"typescript": "4.7.4"
 	},
 	"dependencies": {
+		"set-interval-async": "^3.0.3",
 		"simple-git": "^3.22.0"
 	}
 }
