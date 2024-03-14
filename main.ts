@@ -47,7 +47,10 @@ export default class GHSyncPlugin extends Plugin {
 		let os = require("os");
 		let hostname = os.hostname();
 
-		let statusResult = await git.status().catch((e) => { new Notice("Vault is not a Git repo or git binary cannot be found."); return; })
+		let statusResult = await git.status().catch((e) => {
+			new Notice("Vault is not a Git repo or git binary cannot be found.\nProblem: "+e, 10000);
+			return; })
+
 		//@ts-ignore
 		let clean = statusResult.isClean();
 
@@ -82,7 +85,7 @@ export default class GHSyncPlugin extends Plugin {
 		try {
 			await git.fetch();
 		} catch (e) {
-			new Notice(e + "\nGitHub Sync: Invalid remote URL. Username, PAT, or Repo URL might be incorrect.");
+			new Notice(e + "\nGitHub Sync: Invalid remote URL. Username, PAT, or Repo URL might be incorrect.", 10000);
 			return;
 		}
 
@@ -98,7 +101,7 @@ export default class GHSyncPlugin extends Plugin {
 	      		}
 	   		})
 	    } catch (e) {
-	    	let conflictStatus = await git.status().catch((e) => { new Notice(e); return; });
+	    	let conflictStatus = await git.status().catch((e) => { new Notice(e, 10000); return; });
 	    	let conflictMsg = "Merge conflicts in:";
 	    	//@ts-ignore
 			for (let c of conflictStatus.conflicted)
@@ -122,7 +125,7 @@ export default class GHSyncPlugin extends Plugin {
 		    	git.push('origin', 'main');
 		    	new Notice("GitHub Sync: Pushed on " + msg);
 		    } catch (e) {
-		    	new Notice(e);
+		    	new Notice(e, 10000);
 			}
 	    }
 	}
