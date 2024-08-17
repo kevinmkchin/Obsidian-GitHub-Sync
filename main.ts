@@ -7,17 +7,13 @@ let git: SimpleGit;
 
 
 interface GHSyncSettings {
-	ghUsername: string;
-	ghPersonalAccessToken: string;
-	ghRepoUrl: string;
+	remoteURL: string;
 	gitLocation: string;
 	syncinterval: number;
 }
 
 const DEFAULT_SETTINGS: GHSyncSettings = {
-	ghUsername: '',
-	ghPersonalAccessToken: '',
-	ghRepoUrl: '',
+	remoteURL: '',
 	gitLocation: '',
 	syncinterval: 0
 }
@@ -30,10 +26,7 @@ export default class GHSyncPlugin extends Plugin {
 	{
 		new Notice("Syncing to GitHub remote")
 
-		const USER = this.settings.ghUsername;
-		const PAT = this.settings.ghPersonalAccessToken;
-		const REPO = this.settings.ghRepoUrl;
-		const remote = `https://${USER}:${PAT}@${REPO}`;
+		const remote = this.settings.remoteURL;
 
 		simpleGitOptions = {
 			//@ts-ignore
@@ -216,52 +209,41 @@ class GHSyncSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		const howto = containerEl.createEl("div", { cls: "howto" });
+		howto.createEl("div", { text: "How to use this plugin", cls: "howto_title" });
+		howto.createEl("small", { text: "Grab your GitHub repository's HTTPS or SSH url and paste it into the settings here. If you're not authenticated, the first sync with this plugin should prompt you to authenticate. If you've already setup SSH on your device with GitHub, you won't need to authenticate - just paste your repo's SSH url into the settings here.", cls: "howto_text" });
+		howto.createEl("br");
+        const linkEl = howto.createEl('p');
+        linkEl.createEl('span', { text: 'See the ' });
+        linkEl.createEl('a', { href: 'https://github.com/kevinmkchin/Obsidian-GitHub-Sync/blob/main/README.md', text: 'README' });
+        linkEl.createEl('span', { text: ' for more information and troubleshooting.' });
+
 		new Setting(containerEl)
-			.setName('GitHub username')
+			.setName('Remote URL')
 			.setDesc('')
 			.addText(text => text
 				.setPlaceholder('')
-				.setValue(this.plugin.settings.ghUsername)
+				.setValue(this.plugin.settings.remoteURL)
 				.onChange(async (value) => {
-					this.plugin.settings.ghUsername = value;
+					this.plugin.settings.remoteURL = value;
 					await this.plugin.saveSettings();
-				}));
+				})
+        	.inputEl.addClass('my-plugin-setting-text'));
 
 		new Setting(containerEl)
-			.setName('GitHub personal access token')
-			.setDesc('')
-			.addText(text => text
-				.setPlaceholder('ghp_XXXXXXXXXXXXXXXXXXXXXXXX')
-				.setValue(this.plugin.settings.ghPersonalAccessToken)
-				.onChange(async (value) => {
-					this.plugin.settings.ghPersonalAccessToken = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('GitHub repo URL for this vault')
-			.setDesc('In this format: "github.com/username/repo"')
-			.addText(text => text
-				.setPlaceholder('')
-				.setValue(this.plugin.settings.ghRepoUrl)
-				.onChange(async (value) => {
-					this.plugin.settings.ghRepoUrl = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('git binary location (optional)')
-			.setDesc('If git is not findable via your system PATH, then provide its directory here')
+			.setName('[OPTIONAL] git binary location')
+			.setDesc('If git is not findable via your system PATH, then provide its location here')
 			.addText(text => text
 				.setPlaceholder('')
 				.setValue(this.plugin.settings.gitLocation)
 				.onChange(async (value) => {
 					this.plugin.settings.gitLocation = value;
 					await this.plugin.saveSettings();
-				}));
+				})
+        	.inputEl.addClass('my-plugin-setting-text2'));
 
 		new Setting(containerEl)
-			.setName('Auto sync at interval (optional)')
+			.setName('[OPTIONAL] Auto sync at interval')
 			.setDesc('Set a positive integer minute interval after which your vault is synced automatically. Auto sync is disabled if this field is left empty or not a positive integer. Restart Obsidan to take effect.')
 			.addText(text => text
 				.setValue(String(this.plugin.settings.syncinterval))
