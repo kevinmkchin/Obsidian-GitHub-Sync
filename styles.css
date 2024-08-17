@@ -17,3 +17,26 @@ If your plugin does not need CSS, delete this file.
 {
     order: -1;
 }
+
+.howto {
+  border: 1px solid var(--background-modifier-border);
+  padding: 10px;
+}
+
+.howto_title {
+  font-weight: 600;
+}
+
+.howto_text {
+  color: var(--text-muted);
+  font-size: smaller;
+}
+
+.my-plugin-setting-text {
+    width: 30em;
+}
+
+.my-plugin-setting-text2 {
+    width: 30em;
+}
+
