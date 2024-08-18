@@ -78,7 +78,7 @@ export default class GHSyncPlugin extends Plugin {
 		try {
 			await git.fetch();
 		} catch (e) {
-			new Notice(e + "\nGitHub Sync: Invalid remote URL. Username, PAT, or Repo URL might be incorrect.", 10000);
+			new Notice(e + "\nGitHub Sync: Invalid remote URL.", 10000);
 			return;
 		}
 
@@ -95,19 +95,26 @@ export default class GHSyncPlugin extends Plugin {
 	   		})
 	    } catch (e) {
 	    	let conflictStatus = await git.status().catch((e) => { new Notice(e, 10000); return; });
-	    	let conflictMsg = "Merge conflicts in:";
-	    	//@ts-ignore
-			for (let c of conflictStatus.conflicted)
-			{
-				conflictMsg += "\n\t"+c;
-			}
-			conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
-			new Notice(conflictMsg)
-			//@ts-ignore	
-			for (let c of conflictStatus.conflicted)
-			{
-				this.app.workspace.openLinkText("", c, true);
-			}
+	    	if (conflictStatus.conflicted.length > 0)
+	    	{
+	    		let conflictMsg = "Merge conflicts in:";
+		    	//@ts-ignore
+				for (let c of conflictStatus.conflicted)
+				{
+					conflictMsg += "\n\t"+c;
+				}
+				conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
+				new Notice(conflictMsg)
+				//@ts-ignore	
+				for (let c of conflictStatus.conflicted)
+				{
+					this.app.workspace.openLinkText("", c, true);
+				}
+	    	}
+	    	else
+	    	{
+	    		new Notice("GitHub Sync: Unable to pull from origin. Remote URL may be invalid.");
+	    	}
 	    	return;
 	    }
 
@@ -177,7 +184,6 @@ export default class GHSyncPlugin extends Plugin {
 			}
 		} catch (e) {
 			// don't care
-			new Notice(e);
 		}
 	}
 
