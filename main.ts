@@ -31,7 +31,7 @@ export default class GHSyncPlugin extends Plugin {
 		simpleGitOptions = {
 			//@ts-ignore
 		    baseDir: this.app.vault.adapter.getBasePath(),
-		    binary: this.settings.gitLocation,
+		    binary: this.settings.gitLocation + "git",
 		    maxConcurrentProcesses: 6,
 		    trimmed: false,
 		};
@@ -157,7 +157,7 @@ export default class GHSyncPlugin extends Plugin {
 			simpleGitOptions = {
 				//@ts-ignore
 			    baseDir: this.app.vault.adapter.getBasePath(),
-			    binary: this.settings.gitLocation,
+			    binary: this.settings.gitLocation + "git",
 			    maxConcurrentProcesses: 6,
 			    trimmed: false,
 			};
