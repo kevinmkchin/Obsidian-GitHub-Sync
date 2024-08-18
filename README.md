@@ -40,6 +40,8 @@ You can use either the HTTPS or SSH url. Grab it and paste it in the GitHub Sync
 
 Done. Try clicking the Sync button now - it should work.
 
+The first time may prompt you to authenticate if you haven't, or it may ask you to configure git with your email and name.
+
 ### Optional
 
 If your git binary is not accessible from your system PATH (i.e. if you open up Command Prompt or Terminal and can't use git), you need to provide its location. I initialize git only when launching Cmder, so I need to input a custom path like so: `C:/Users/Kevin/scoop/apps/cmder-full/current/vendor/git-for-windows/cmd/`. Note that I excluded `git.exe` from the end of the path.
