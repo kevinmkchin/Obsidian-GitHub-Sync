@@ -41,7 +41,7 @@ export default class GHSyncPlugin extends Plugin {
 		let hostname = os.hostname();
 
 		let statusResult = await git.status().catch((e) => {
-			new Notice("Vault is not a Git repo or git binary cannot be found.\nProblem: "+e, 10000);
+			new Notice("Vault is not a Git repo or git binary cannot be found.", 10000);
 			return; })
 
 		//@ts-ignore
@@ -154,11 +154,6 @@ export default class GHSyncPlugin extends Plugin {
 
 		// check status
 		try {
-			const USER = this.settings.ghUsername;
-			const PAT = this.settings.ghPersonalAccessToken;
-			const REPO = this.settings.ghRepoUrl;
-			const remote = `https://${USER}:${PAT}@${REPO}`;
-
 			simpleGitOptions = {
 				//@ts-ignore
 			    baseDir: this.app.vault.adapter.getBasePath(),
@@ -169,17 +164,20 @@ export default class GHSyncPlugin extends Plugin {
 			git = simpleGit(simpleGitOptions);
 
 			//check for remote changes
-			let branchresult = await git.branch();
-			let currentbranchname = branchresult.current;
 			// git branch --set-upstream-to=origin/main main
-			await git.branch({'--set-upstream-to': 'origin/'+currentbranchname});
+			await git.branch({'--set-upstream-to': 'origin/main'});
 			let statusUponOpening = await git.fetch().status();
 			if (statusUponOpening.behind > 0)
 			{
-				new Notice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote branch.\nClick the GitHub ribbon icon to sync.")
+				new Notice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.")
+			}
+			else
+			{
+				new Notice("GitHub Sync: up to date with remote.")
 			}
 		} catch (e) {
 			// don't care
+			new Notice(e);
 		}
 	}
 

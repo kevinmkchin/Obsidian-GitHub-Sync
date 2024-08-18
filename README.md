@@ -1,3 +1,7 @@
+### Changelog 1.0.4
+- Simplified setup process.
+- Allow SSH url for remote.
+
 # GitHub Sync
 
 Simple plugin that allows you to sync your vault to a personal GitHub repo for **syncing across devices**.
@@ -6,24 +10,42 @@ Simple plugin that allows you to sync your vault to a personal GitHub repo for *
 
 ## How to Use
 Click the **Sync with Remote** ribbon icon to pull changes from your GitHub repo and push local changes. 
-If there are any conflicts, the unmerged files will be opened for you to resolve (or just push again with the unresolved conflicts - that's fine too).
+If there are any conflicts, the unmerged files will be opened for you to resolve (or just push again with the unresolved conflicts - that should work too).
 
 ## Setup
-What you need:
-- GitHub account
-- GitHub [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) from https://github.com/settings/tokens
-- GitHub repo for your vault
-- Git installed device
 
-![](screenshots/settings.png)
+### Setting up a GitHub repo
+If your vault is already set up as a GitHub repository, you can skip this step. Otherwise, create a new public or private GitHub repository that you want to use for your vault.
 
-After installing the plugin, open the **GitHub Sync** section in Settings. Put in your GitHub username, personal access token, and the URL for your GitHub repo in the noted format. Make sure your PAT has control of private repos if your repo is private. That's it.
+Navigate to your vault and `git init` the folder. 
+At this point, add anything you don't want syncing across your devices to a `.gitignore`.
+
+This is not required, but you should try pushing your vault to your GitHub repository before continuing to make sure you can do that in the first place before using this plugin:
+```
+git add .
+git commit -m "my obsidian vault first commit"
+git remote add origin <remote-url>
+git push -u origin main
+```
+Verify that this works before continuing.
+
+### Setting up remote URL
+All this plugin needs now is your GitHub repo's remote URL. You can grab this from the GitHub repo page for your vault:
+
+![](screenshots/remote-url.png)
+
+You can use either the HTTPS or SSH url. Grab it and paste it in the GitHub Sync settings tab like so:
+
+![](screenshots/new-settings-page.png)
+
+Done. Try clicking the Sync button now - it should work.
 
 ### Optional
 
 If your git binary is not accessible from your system PATH (i.e. if you open up Command Prompt or Terminal and can't use git), you need to provide its location. I initialize git only when launching Cmder, so I need to input a custom path like so: `C:/Users/Kevin/scoop/apps/cmder-full/current/vendor/git-for-windows/cmd/git`.
 
-I'm assuming your vault directory is already a Git repository, but if it's not you need to `git init` it first (make sure the default branch name matches what's on the GitHub repo e.g. main).
+You can also include your GitHub username and personal access token in the remote url. Like so: `https://{username}:{personal access token}@github.com/{username}/{repository name}`. This is not recommended anymore, but it was how the plugin worked prior to 1.0.4. If you're doing this, you'll have to add `.obsidian/plugins/github-sync/data.json` to your `.gitignore`. See: https://github.com/kevinmkchin/Obsidian-GitHub-Sync/issues/2#issuecomment-2168384792.
+
 ## Rationale
 
 This plugin is for personal use, but I figured others might find it useful too. This is basically a glorified script - the code is tiny its like ~200 SLOC.
@@ -33,5 +55,5 @@ The Node API used by this plugin works with any remote host, but I use GitHub so
 
 Mobile support could come in the future depending on how much I need it myself.
 
-Follow my stuff at https://kevch.in/
+Follow my stuff at https://kevin.gd/
 
