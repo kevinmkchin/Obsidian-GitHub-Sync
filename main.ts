@@ -95,26 +95,19 @@ export default class GHSyncPlugin extends Plugin {
 	   		})
 	    } catch (e) {
 	    	let conflictStatus = await git.status().catch((e) => { new Notice(e, 10000); return; });
-	    	if (conflictStatus.conflicted.length > 0)
-	    	{
-	    		let conflictMsg = "Merge conflicts in:";
-		    	//@ts-ignore
-				for (let c of conflictStatus.conflicted)
-				{
-					conflictMsg += "\n\t"+c;
-				}
-				conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
-				new Notice(conflictMsg)
-				//@ts-ignore	
-				for (let c of conflictStatus.conflicted)
-				{
-					this.app.workspace.openLinkText("", c, true);
-				}
-	    	}
-	    	else
-	    	{
-	    		new Notice("GitHub Sync: Unable to pull from origin. Remote URL may be invalid.");
-	    	}
+    		let conflictMsg = "Merge conflicts in:";
+	    	//@ts-ignore
+			for (let c of conflictStatus.conflicted)
+			{
+				conflictMsg += "\n\t"+c;
+			}
+			conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
+			new Notice(conflictMsg)
+			//@ts-ignore	
+			for (let c of conflictStatus.conflicted)
+			{
+				this.app.workspace.openLinkText("", c, true);
+			}
 	    	return;
 	    }
 
