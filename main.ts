@@ -115,7 +115,7 @@ export default class GHSyncPlugin extends Plugin {
 		// git push origin main
 	    if (!clean) {
 		    try {
-		    	git.push('origin', 'main');
+		    	git.push('origin', 'main', ['-u']);
 		    	new Notice("GitHub Sync: Pushed on " + msg);
 		    } catch (e) {
 		    	new Notice(e, 10000);
