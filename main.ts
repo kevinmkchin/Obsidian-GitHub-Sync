@@ -10,12 +10,14 @@ interface GHSyncSettings {
 	remoteURL: string;
 	gitLocation: string;
 	syncinterval: number;
+	isSyncOnLoad: boolean;
 }
 
 const DEFAULT_SETTINGS: GHSyncSettings = {
 	remoteURL: '',
 	gitLocation: '',
-	syncinterval: 0
+	syncinterval: 0,
+	isSyncOnLoad: false,
 }
 
 
@@ -132,6 +134,14 @@ export default class GHSyncPlugin extends Plugin {
 		});
 		ribbonIconEl.addClass('gh-sync-ribbon');
 
+		this.addCommand({
+			id: 'github-sync-command',
+			name: 'Sync with Remote',
+			callback: () => {
+				this.SyncNotes();
+			}
+		});
+
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new GHSyncSettingTab(this.app, this));
 
@@ -169,7 +179,15 @@ export default class GHSyncPlugin extends Plugin {
 			let statusUponOpening = await git.fetch().status();
 			if (statusUponOpening.behind > 0)
 			{
-				new Notice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.")
+				// Automatically sync if needed
+				if (this.settings.isSyncOnLoad == true)
+				{
+					this.SyncNotes();
+				}
+				else
+				{
+					new Notice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.")
+				}
 			}
 			else
 			{
@@ -177,6 +195,7 @@ export default class GHSyncPlugin extends Plugin {
 			}
 		} catch (e) {
 			// don't care
+			// based
 		}
 	}
 
@@ -238,6 +257,16 @@ class GHSyncSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
         	.inputEl.addClass('my-plugin-setting-text2'));
+
+		new Setting(containerEl)
+			.setName('Auto sync on startup')
+			.setDesc('Automatically sync when you start obsidian if there are unsynced changes')
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.isSyncOnLoad)
+				.onChange(async (value) => {
+					this.plugin.settings.isSyncOnLoad = value;
+					await this.plugin.saveSettings();
+				}));
 
 		new Setting(containerEl)
 			.setName('[OPTIONAL] Auto sync at interval')
