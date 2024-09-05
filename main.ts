@@ -259,7 +259,7 @@ class GHSyncSettingTab extends PluginSettingTab {
         	.inputEl.addClass('my-plugin-setting-text2'));
 
 		new Setting(containerEl)
-			.setName('Auto sync on startup')
+			.setName('[OPTIONAL] Auto sync on startup')
 			.setDesc('Automatically sync when you start obsidian if there are unsynced changes')
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.isSyncOnLoad)
