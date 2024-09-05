@@ -1,3 +1,7 @@
+### Changelog 1.0.5
+- Added option to automatically sync on start up if behind remote
+- Added "Sync with Remote" command to command palette
+
 ### Changelog 1.0.4
 - Simplified setup process.
 - Allow SSH url for remote.
