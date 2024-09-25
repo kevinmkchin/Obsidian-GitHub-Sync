@@ -5,7 +5,6 @@ import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async';
 let simpleGitOptions: Partial<SimpleGitOptions>;
 let git: SimpleGit;
 
-
 interface GHSyncSettings {
 	remoteURL: string;
 	gitLocation: string;
@@ -24,9 +23,19 @@ const DEFAULT_SETTINGS: GHSyncSettings = {
 export default class GHSyncPlugin extends Plugin {
 	settings: GHSyncSettings;
 
+	InfoNotice(msg)
+	{
+		InfoNotice(msg)
+	}
+
+	WarningNotice(msg)
+	{
+		InfoNotice(msg)
+	}
+
 	async SyncNotes()
 	{
-		new Notice("Syncing to GitHub remote")
+		InfoNotice("Syncing to GitHub remote")
 
 		const remote = this.settings.remoteURL;
 
@@ -43,7 +52,7 @@ export default class GHSyncPlugin extends Plugin {
 		let hostname = os.hostname();
 
 		let statusResult = await git.status().catch((e) => {
-			new Notice("Vault is not a Git repo or git binary cannot be found.", 10000);
+			InfoNotice("Vault is not a Git repo or git binary cannot be found.", 10000);
 			return; })
 
 		//@ts-ignore
@@ -60,31 +69,31 @@ export default class GHSyncPlugin extends Plugin {
 		    		.add("./*")
 		    		.commit(msg);
 		    } catch (e) {
-		    	new Notice(e);
+		    	InfoNotice(e);
 		    	return;
 		    }
 		} else {
-			new Notice("Working branch clean");
+			InfoNotice("Working branch clean");
 		}
 
 		// configure remote
 		try {
-			await git.removeRemote('origin').catch((e) => { new Notice(e); });
-			await git.addRemote('origin', remote).catch((e) => { new Notice(e); });
+			await git.removeRemote('origin').catch((e) => { InfoNotice(e); });
+			await git.addRemote('origin', remote).catch((e) => { InfoNotice(e); });
 		}
 		catch (e) {
-			new Notice(e);
+			WarningNotice(e);
 			return;
 		}
 		// check if remote url valid by fetching
 		try {
 			await git.fetch();
 		} catch (e) {
-			new Notice(e + "\nGitHub Sync: Invalid remote URL.", 10000);
+			WarningNotice(e + "\nGitHub Sync: Invalid remote URL.", 10000);
 			return;
 		}
 
-		new Notice("GitHub Sync: Successfully set remote origin url");
+		InfoNotice("GitHub Sync: Successfully set remote origin url");
 
 
 		// git pull origin main
@@ -92,11 +101,11 @@ export default class GHSyncPlugin extends Plugin {
 	    	//@ts-ignore
 	    	await git.pull('origin', 'main', { '--no-rebase': null }, (err, update) => {
 	      		if (update) {
-					new Notice("GitHub Sync: Pulled " + update.summary.changes + " changes");
+					InfoNotice("GitHub Sync: Pulled " + update.summary.changes + " changes");
 	      		}
 	   		})
 	    } catch (e) {
-	    	let conflictStatus = await git.status().catch((e) => { new Notice(e, 10000); return; });
+	    	let conflictStatus = await git.status().catch((e) => { InfoNotice(e, 10000); return; });
     		let conflictMsg = "Merge conflicts in:";
 	    	//@ts-ignore
 			for (let c of conflictStatus.conflicted)
@@ -104,7 +113,7 @@ export default class GHSyncPlugin extends Plugin {
 				conflictMsg += "\n\t"+c;
 			}
 			conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
-			new Notice(conflictMsg)
+			WarningNotice(conflictMsg)
 			//@ts-ignore	
 			for (let c of conflictStatus.conflicted)
 			{
@@ -118,9 +127,9 @@ export default class GHSyncPlugin extends Plugin {
 	    if (!clean) {
 		    try {
 		    	git.push('origin', 'main', ['-u']);
-		    	new Notice("GitHub Sync: Pushed on " + msg);
+		    	InfoNotice("GitHub Sync: Pushed on " + msg);
 		    } catch (e) {
-		    	new Notice(e, 10000);
+		    	WarningNotice(e, 10000);
 			}
 	    }
 	}
@@ -155,7 +164,7 @@ export default class GHSyncPlugin extends Plugin {
 						await this.SyncNotes();
 					}, interval * 60 * 1000);
 					//this.registerInterval(setInterval(this.SyncNotes, interval * 6 * 1000));
-					new Notice("Auto sync enabled");
+					InfoNotice("Auto sync enabled");
 				} catch (e) {
 					
 				}
@@ -186,12 +195,12 @@ export default class GHSyncPlugin extends Plugin {
 				}
 				else
 				{
-					new Notice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.")
+					InfoNotice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.")
 				}
 			}
 			else
 			{
-				new Notice("GitHub Sync: up to date with remote.")
+				InfoNotice("GitHub Sync: up to date with remote.")
 			}
 		} catch (e) {
 			// don't care
