@@ -1,3 +1,6 @@
+### Changelog 1.0.6
+- Added option to manual branch selection
+
 ### Changelog 1.0.5
 - Added option to automatically sync on start up if behind remote
 - Added "Sync with Remote" command to command palette
