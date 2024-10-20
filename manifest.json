@@ -1,6 +1,6 @@
 {
-	"id": "github-sync",
-	"name": "GitHub Sync",
+	"id": "github-sync-vadim",
+	"name": "GitHub Sync Vadim",
 	"version": "1.0.5",
 	"minAppVersion": "0.15.0",
 	"description": "Sync vault to personal GitHub.",

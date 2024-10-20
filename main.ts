@@ -11,6 +11,7 @@ interface GHSyncSettings {
 	gitLocation: string;
 	syncinterval: number;
 	isSyncOnLoad: boolean;
+	mainBranchName: string;
 }
 
 const DEFAULT_SETTINGS: GHSyncSettings = {
@@ -18,17 +19,18 @@ const DEFAULT_SETTINGS: GHSyncSettings = {
 	gitLocation: '',
 	syncinterval: 0,
 	isSyncOnLoad: false,
+	mainBranchName: 'master'
 }
 
 
 export default class GHSyncPlugin extends Plugin {
 	settings: GHSyncSettings;
-
 	async SyncNotes()
 	{
 		new Notice("Syncing to GitHub remote")
 
 		const remote = this.settings.remoteURL;
+		const name = this.settings.mainBranchName;
 
 		simpleGitOptions = {
 			//@ts-ignore
@@ -90,7 +92,7 @@ export default class GHSyncPlugin extends Plugin {
 		// git pull origin main
 	    try {
 	    	//@ts-ignore
-	    	await git.pull('origin', 'main', { '--no-rebase': null }, (err, update) => {
+	    	await git.pull('origin', name, { '--no-rebase': null }, (err, update) => {
 	      		if (update) {
 					new Notice("GitHub Sync: Pulled " + update.summary.changes + " changes");
 	      		}
@@ -117,7 +119,7 @@ export default class GHSyncPlugin extends Plugin {
 		// git push origin main
 	    if (!clean) {
 		    try {
-		    	git.push('origin', 'main', ['-u']);
+		    	git.push('origin', name, ['-u']);
 		    	new Notice("GitHub Sync: Pushed on " + msg);
 		    } catch (e) {
 		    	new Notice(e, 10000);
@@ -128,6 +130,8 @@ export default class GHSyncPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+		
+		const name = this.settings.mainBranchName;
 
 		const ribbonIconEl = this.addRibbonIcon('github', 'Sync with Remote', (evt: MouseEvent) => {
 			this.SyncNotes();
@@ -175,7 +179,7 @@ export default class GHSyncPlugin extends Plugin {
 
 			//check for remote changes
 			// git branch --set-upstream-to=origin/main main
-			await git.branch({'--set-upstream-to': 'origin/main'});
+			await git.branch({'--set-upstream-to': 'origin/' + name});
 			let statusUponOpening = await git.fetch().status();
 			if (statusUponOpening.behind > 0)
 			{
@@ -275,6 +279,16 @@ class GHSyncSettingTab extends PluginSettingTab {
 				.setValue(String(this.plugin.settings.syncinterval))
 				.onChange(async (value) => {
 					this.plugin.settings.syncinterval = Number(value);
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('[OPTIONAL] Main branch name')
+			.setDesc('Set a main branch name. Restart Obsidan to take effect.')
+			.addText(text => text
+				.setValue(String(this.plugin.settings.mainBranchName))
+				.onChange(async (value) => {
+					this.plugin.settings.mainBranchName = value;
 					await this.plugin.saveSettings();
 				}));
 	}
