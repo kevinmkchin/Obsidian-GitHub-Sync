@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS: GHSyncSettings = {
 	gitLocation: '',
 	syncinterval: 0,
 	isSyncOnLoad: false,
-	mainBranchName: 'master'
+	mainBranchName: 'main'
 }
 
 
