@@ -28,7 +28,7 @@ export default class GHSyncPlugin extends Plugin {
 	{
 		new Notice("Syncing to GitHub remote")
 
-		const remote = this.settings.remoteURL;
+		const remote = this.settings.remoteURL.trim();
 
 		simpleGitOptions = {
 			//@ts-ignore
