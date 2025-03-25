@@ -32,6 +32,8 @@ git push -u origin main
 ```
 Verify that this works before continuing.
 
+> For simplicity, this plugin does not support branching. Everything gets pushed to main.
+
 ### Setting up remote URL
 All this plugin needs now is your GitHub repo's remote URL. You can grab this from the GitHub repo page for your vault:
 

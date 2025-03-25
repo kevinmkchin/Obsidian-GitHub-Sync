@@ -11,6 +11,7 @@ interface GHSyncSettings {
 	gitLocation: string;
 	syncinterval: number;
 	isSyncOnLoad: boolean;
+	checkStatusOnLoad: boolean;
 }
 
 const DEFAULT_SETTINGS: GHSyncSettings = {
@@ -18,10 +19,12 @@ const DEFAULT_SETTINGS: GHSyncSettings = {
 	gitLocation: '',
 	syncinterval: 0,
 	isSyncOnLoad: false,
+	checkStatusOnLoad: true,
 }
 
 
 export default class GHSyncPlugin extends Plugin {
+
 	settings: GHSyncSettings;
 
 	async SyncNotes()
@@ -125,6 +128,44 @@ export default class GHSyncPlugin extends Plugin {
 	    }
 	}
 
+	async CheckStatusOnStart()
+	{
+		// check status
+		try {
+			simpleGitOptions = {
+				//@ts-ignore
+			    baseDir: this.app.vault.adapter.getBasePath(),
+			    binary: this.settings.gitLocation + "git",
+			    maxConcurrentProcesses: 6,
+			    trimmed: false,
+			};
+			git = simpleGit(simpleGitOptions);
+
+			//check for remote changes
+			// git branch --set-upstream-to=origin/main main
+			await git.branch({'--set-upstream-to': 'origin/main'});
+			let statusUponOpening = await git.fetch().status();
+			if (statusUponOpening.behind > 0)
+			{
+				// Automatically sync if needed
+				if (this.settings.isSyncOnLoad == true)
+				{
+					this.SyncNotes();
+				}
+				else
+				{
+					new Notice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.")
+				}
+			}
+			else
+			{
+				new Notice("GitHub Sync: up to date with remote.")
+			}
+		} catch (e) {
+			// don't care
+			// based
+		}
+	}
 
 	async onload() {
 		await this.loadSettings();
@@ -162,40 +203,9 @@ export default class GHSyncPlugin extends Plugin {
 			}
 		}
 
-		// check status
-		try {
-			simpleGitOptions = {
-				//@ts-ignore
-			    baseDir: this.app.vault.adapter.getBasePath(),
-			    binary: this.settings.gitLocation + "git",
-			    maxConcurrentProcesses: 6,
-			    trimmed: false,
-			};
-			git = simpleGit(simpleGitOptions);
-
-			//check for remote changes
-			// git branch --set-upstream-to=origin/main main
-			await git.branch({'--set-upstream-to': 'origin/main'});
-			let statusUponOpening = await git.fetch().status();
-			if (statusUponOpening.behind > 0)
-			{
-				// Automatically sync if needed
-				if (this.settings.isSyncOnLoad == true)
-				{
-					this.SyncNotes();
-				}
-				else
-				{
-					new Notice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.")
-				}
-			}
-			else
-			{
-				new Notice("GitHub Sync: up to date with remote.")
-			}
-		} catch (e) {
-			// don't care
-			// based
+		if (this.settings.checkStatusOnLoad)
+		{
+			this.CheckStatusOnStart();
 		}
 	}
 
@@ -247,8 +257,8 @@ class GHSyncSettingTab extends PluginSettingTab {
         	.inputEl.addClass('my-plugin-setting-text'));
 
 		new Setting(containerEl)
-			.setName('[OPTIONAL] git binary location')
-			.setDesc('If git is not findable via your system PATH, then provide its location here')
+			.setName('git binary location')
+			.setDesc('This is optional! Set this only if git is not findable via your system PATH, then provide its location here. See README for more info.')
 			.addText(text => text
 				.setPlaceholder('')
 				.setValue(this.plugin.settings.gitLocation)
@@ -259,8 +269,18 @@ class GHSyncSettingTab extends PluginSettingTab {
         	.inputEl.addClass('my-plugin-setting-text2'));
 
 		new Setting(containerEl)
-			.setName('[OPTIONAL] Auto sync on startup')
-			.setDesc('Automatically sync when you start obsidian if there are unsynced changes')
+			.setName('Check status on startup')
+			.setDesc('Check to see if you are behind remote when you start Obsidian.')
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.checkStatusOnLoad)
+				.onChange(async (value) => {
+					this.plugin.settings.checkStatusOnLoad = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Auto sync on startup')
+			.setDesc('Automatically sync with remote when you start Obsidian if there are unsynced changes.')
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.isSyncOnLoad)
 				.onChange(async (value) => {
@@ -269,8 +289,8 @@ class GHSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('[OPTIONAL] Auto sync at interval')
-			.setDesc('Set a positive integer minute interval after which your vault is synced automatically. Auto sync is disabled if this field is left empty or not a positive integer. Restart Obsidan to take effect.')
+			.setName('Auto sync at interval')
+			.setDesc('Set minute interval after which your vault is synced automatically. Auto sync is disabled if this field is left empty or not a positive integer. Restart Obsidan to take effect.')
 			.addText(text => text
 				.setValue(String(this.plugin.settings.syncinterval))
 				.onChange(async (value) => {
