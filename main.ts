@@ -9,17 +9,21 @@ let git: SimpleGit;
 interface GHSyncSettings {
 	remoteURL: string;
 	gitLocation: string;
+	branchName: string;
 	syncinterval: number;
 	isSyncOnLoad: boolean;
 	checkStatusOnLoad: boolean;
+	showSuccessNotice: boolean;
 }
 
 const DEFAULT_SETTINGS: GHSyncSettings = {
 	remoteURL: '',
 	gitLocation: '',
+	branchName: 'main',
 	syncinterval: 0,
 	isSyncOnLoad: false,
 	checkStatusOnLoad: true,
+	showSuccessNotice: true,
 }
 
 
@@ -27,7 +31,7 @@ export default class GHSyncPlugin extends Plugin {
 
 	settings: GHSyncSettings;
 
-	async SyncNotes()
+	async SyncNotes(isManual: boolean = false)
 	{
 		new Notice("Syncing to GitHub remote")
 
@@ -66,7 +70,7 @@ export default class GHSyncPlugin extends Plugin {
 		    	new Notice(e);
 		    	return;
 		    }
-		} else {
+		} else if (isManual) {
 			new Notice("Working branch clean");
 		}
 
@@ -87,14 +91,16 @@ export default class GHSyncPlugin extends Plugin {
 			return;
 		}
 
-		new Notice("GitHub Sync: Successfully set remote origin url");
+		if (isManual || this.settings.showSuccessNotice) {
+			new Notice("GitHub Sync: Successfully set remote origin url");
+		}
 
 
-		// git pull origin main
+		// git pull origin branch
 	    try {
 	    	//@ts-ignore
-	    	await git.pull('origin', 'main', { '--no-rebase': null }, (err, update) => {
-	      		if (update) {
+	    	await git.pull('origin', this.settings.branchName, { '--no-rebase': null }, (err, update) => {
+	      		if (update && (isManual || this.settings.showSuccessNotice)) {
 					new Notice("GitHub Sync: Pulled " + update.summary.changes + " changes");
 	      		}
 	   		})
@@ -108,7 +114,7 @@ export default class GHSyncPlugin extends Plugin {
 			}
 			conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
 			new Notice(conflictMsg)
-			//@ts-ignore	
+			//@ts-ignore
 			for (let c of conflictStatus.conflicted)
 			{
 				this.app.workspace.openLinkText("", c, true);
@@ -117,11 +123,13 @@ export default class GHSyncPlugin extends Plugin {
 	    }
 
 		// resolve merge conflicts
-		// git push origin main
+		// git push origin branch
 	    if (!clean) {
 		    try {
-		    	git.push('origin', 'main', ['-u']);
-		    	new Notice("GitHub Sync: Pushed on " + msg);
+		    	git.push('origin', this.settings.branchName, ['-u']);
+		    	if (isManual || this.settings.showSuccessNotice) {
+		    		new Notice("GitHub Sync: Pushed on " + msg);
+		    	}
 		    } catch (e) {
 		    	new Notice(e, 10000);
 			}
@@ -142,8 +150,8 @@ export default class GHSyncPlugin extends Plugin {
 			git = simpleGit(simpleGitOptions);
 
 			//check for remote changes
-			// git branch --set-upstream-to=origin/main main
-			await git.branch({'--set-upstream-to': 'origin/main'});
+			// git branch --set-upstream-to=origin/branch
+			await git.branch({'--set-upstream-to': 'origin/' + this.settings.branchName});
 			let statusUponOpening = await git.fetch().status();
 			if (statusUponOpening.behind > 0)
 			{
@@ -159,7 +167,9 @@ export default class GHSyncPlugin extends Plugin {
 			}
 			else
 			{
-				new Notice("GitHub Sync: up to date with remote.")
+				if (this.settings.showSuccessNotice) {
+					new Notice("GitHub Sync: up to date with remote.")
+				}
 			}
 		} catch (e) {
 			// don't care
@@ -171,7 +181,7 @@ export default class GHSyncPlugin extends Plugin {
 		await this.loadSettings();
 
 		const ribbonIconEl = this.addRibbonIcon('github', 'Sync with Remote', (evt: MouseEvent) => {
-			this.SyncNotes();
+			this.SyncNotes(true);
 		});
 		ribbonIconEl.addClass('gh-sync-ribbon');
 
@@ -179,7 +189,7 @@ export default class GHSyncPlugin extends Plugin {
 			id: 'github-sync-command',
 			name: 'Sync with Remote',
 			callback: () => {
-				this.SyncNotes();
+				this.SyncNotes(true);
 			}
 		});
 
@@ -198,7 +208,7 @@ export default class GHSyncPlugin extends Plugin {
 					//this.registerInterval(setInterval(this.SyncNotes, interval * 6 * 1000));
 					new Notice("Auto sync enabled");
 				} catch (e) {
-					
+
 				}
 			}
 		}
@@ -269,6 +279,17 @@ class GHSyncSettingTab extends PluginSettingTab {
         	.inputEl.addClass('my-plugin-setting-text2'));
 
 		new Setting(containerEl)
+			.setName('Branch name')
+			.setDesc('The branch to sync with (e.g., main or master).')
+			.addText(text => text
+				.setPlaceholder('master')
+				.setValue(this.plugin.settings.branchName)
+				.onChange(async (value) => {
+					this.plugin.settings.branchName = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName('Check status on startup')
 			.setDesc('Check to see if you are behind remote when you start Obsidian.')
 			.addToggle((toggle) => toggle
@@ -295,6 +316,16 @@ class GHSyncSettingTab extends PluginSettingTab {
 				.setValue(String(this.plugin.settings.syncinterval))
 				.onChange(async (value) => {
 					this.plugin.settings.syncinterval = Number(value);
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Show success notifications')
+			.setDesc('Show notifications when sync operations complete successfully.')
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.showSuccessNotice)
+				.onChange(async (value) => {
+					this.plugin.settings.showSuccessNotice = value;
 					await this.plugin.saveSettings();
 				}));
 	}
