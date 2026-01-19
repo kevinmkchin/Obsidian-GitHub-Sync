@@ -1,10 +1,9 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Vault } from 'obsidian';
-import { simpleGit, SimpleGit, CleanOptions, SimpleGitOptions } from 'simple-git';
-import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async';
+import { App, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter } from 'obsidian';
+import { simpleGit, SimpleGit, SimpleGitOptions, StatusResult, PullResult } from 'simple-git';
+import { setIntervalAsync } from 'set-interval-async';
 
 let simpleGitOptions: Partial<SimpleGitOptions>;
 let git: SimpleGit;
-
 
 interface GHSyncSettings {
 	remoteURL: string;
@@ -33,30 +32,35 @@ export default class GHSyncPlugin extends Plugin {
 
 		const remote = this.settings.remoteURL.trim();
 
+		const adapter = this.app.vault.adapter;
+		if (!(adapter instanceof FileSystemAdapter)) {
+			new Notice("GitHub Sync: Vault must be stored on the local file system.", 10000);
+			return;
+		}
+		const basePath = adapter.getBasePath();
 		simpleGitOptions = {
-			//@ts-ignore
-		    baseDir: this.app.vault.adapter.getBasePath(),
+		    baseDir: basePath,
 		    binary: this.settings.gitLocation + "git",
 		    maxConcurrentProcesses: 6,
 		    trimmed: false,
 		};
 		git = simpleGit(simpleGitOptions);
 
-		let os = require("os");
-		let hostname = os.hostname();
-
-		let statusResult = await git.status().catch((e) => {
+		let statusResult: StatusResult | undefined = await git.status().catch((e) => {
 			new Notice("Vault is not a Git repo or git binary cannot be found.", 10000);
-			return; })
+			return undefined; })
 
-		//@ts-ignore
+		if (!statusResult) {
+			return;
+		}
+
 		let clean = statusResult.isClean();
 
     	let date = new Date();
-    	let msg = hostname + " " + date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + ":" + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+    	let msg = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + ":" + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
 
 		// git add .
-		// git commit -m hostname-date-time
+		// git commit -m date-time
 		if (!clean) {
 			try {
 				await git
@@ -92,23 +96,27 @@ export default class GHSyncPlugin extends Plugin {
 
 		// git pull origin main
 	    try {
-	    	//@ts-ignore
-	    	await git.pull('origin', 'main', { '--no-rebase': null }, (err, update) => {
-	      		if (update) {
-					new Notice("GitHub Sync: Pulled " + update.summary.changes + " changes");
-	      		}
-	   		})
+	    	const pullResult: PullResult = await git.pull('origin', 'main', ['--no-rebase']);
+	      	if (pullResult.summary.changes > 0) {
+				new Notice("GitHub Sync: Pulled " + pullResult.summary.changes + " changes");
+	      	}
 	    } catch (e) {
-	    	let conflictStatus = await git.status().catch((e) => { new Notice(e, 10000); return; });
+	    	let conflictStatus: StatusResult | undefined = await git.status().catch((e) => { 
+	    		new Notice(String(e), 10000); 
+	    		return undefined; 
+	    	});
+	    	
+	    	if (!conflictStatus) {
+	    		return;
+	    	}
+	    	
     		let conflictMsg = "Merge conflicts in:";
-	    	//@ts-ignore
 			for (let c of conflictStatus.conflicted)
 			{
 				conflictMsg += "\n\t"+c;
 			}
 			conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
 			new Notice(conflictMsg)
-			//@ts-ignore	
 			for (let c of conflictStatus.conflicted)
 			{
 				this.app.workspace.openLinkText("", c, true);
@@ -132,9 +140,13 @@ export default class GHSyncPlugin extends Plugin {
 	{
 		// check status
 		try {
+			const adapter = this.app.vault.adapter;
+			if (!(adapter instanceof FileSystemAdapter)) {
+				return;
+			}
+			const basePath = adapter.getBasePath();
 			simpleGitOptions = {
-				//@ts-ignore
-			    baseDir: this.app.vault.adapter.getBasePath(),
+			    baseDir: basePath,
 			    binary: this.settings.gitLocation + "git",
 			    maxConcurrentProcesses: 6,
 			    trimmed: false,
