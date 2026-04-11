@@ -61,7 +61,7 @@ export default class GHSyncPlugin extends Plugin {
 			return;
 		}
 
-		this.showNotice('GitHub Sync: Sync successful', 'INFO');
+		this.showNotice('github sync successful', 'INFO');
 	}
 
 	async SyncNotes()
