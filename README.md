@@ -1,3 +1,6 @@
+### Changelog 1.0.7
+- Simplified the sync success notice so successful runs show a shorter confirmation message.
+
 ### Changelog 1.0.6
 - Plugin loads faster on start up
 
@@ -14,6 +17,11 @@
 # GitHub Sync
 
 Simple plugin that allows you to sync your vault to a personal GitHub repo for **syncing across devices**.
+
+## Highlights
+- Sync your vault with a single ribbon action.
+- Reduce notice noise with configurable notice levels.
+- Keep the success notice to one short confirmation message or hide it entirely.
 
 ![](screenshots/ribbon-button.png)
 
@@ -55,6 +63,13 @@ Done. Try clicking the Sync button now - it should work.
 The first time may prompt you to authenticate if you haven't, or it may ask you to configure git with your email and name.
 
 ### Optional
+
+You can reduce UI noise from sync operations with the `Notice level` setting:
+- `ALL` shows every GitHub Sync notice.
+- `WARNING` shows only warnings and errors.
+- `ERROR` shows only error notices, so sync can run mostly in the background.
+
+You can also use `Hide Success Message` to suppress the single confirmation notice shown after a successful sync. With the toggle off and `Notice level` set to `ALL`, a successful sync shows exactly one success message instead of multiple informational notices.
 
 If your git binary is not accessible from your system PATH (i.e. if you open up Command Prompt or Terminal and can't use git), you need to provide its location. I initialize git only when launching Cmder, so I need to input a custom path like so: `C:/Users/Kevin/scoop/apps/cmder-full/current/vendor/git-for-windows/cmd/`. Note that I excluded `git.exe` from the end of the path.
 
