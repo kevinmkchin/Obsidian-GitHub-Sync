@@ -56,6 +56,13 @@ The first time may prompt you to authenticate if you haven't, or it may ask you 
 
 ### Optional
 
+You can reduce UI noise from sync operations with the `Notice level` setting:
+- `ALL` shows every GitHub Sync notice.
+- `WARNINGS` shows only warnings and errors.
+- `ERROR` shows only error notices, so sync can run mostly in the background.
+
+You can also use `Show success message` to control whether a successful sync shows a confirmation notice. When enabled, successful syncs now show a single success message instead of multiple informational notices.
+
 If your git binary is not accessible from your system PATH (i.e. if you open up Command Prompt or Terminal and can't use git), you need to provide its location. I initialize git only when launching Cmder, so I need to input a custom path like so: `C:/Users/Kevin/scoop/apps/cmder-full/current/vendor/git-for-windows/cmd/`. Note that I excluded `git.exe` from the end of the path.
 
 You can also include your GitHub username and personal access token in the remote url. Like so: `https://{username}:{personal access token}@github.com/{username}/{repository name}`. This is not recommended anymore, but it was how the plugin worked prior to 1.0.4. If you're doing this, you'll have to add `.obsidian/plugins/github-sync/data.json` to your `.gitignore`. See: https://github.com/kevinmkchin/Obsidian-GitHub-Sync/issues/2#issuecomment-2168384792.

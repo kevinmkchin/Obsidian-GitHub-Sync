@@ -5,6 +5,9 @@ import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async';
 let simpleGitOptions: Partial<SimpleGitOptions>;
 let git: SimpleGit;
 
+type NoticeLevelSetting = 'ALL' | 'WARNINGS' | 'ERROR';
+type NoticeSeverity = 'INFO' | 'WARNING' | 'ERROR';
+
 
 interface GHSyncSettings {
 	remoteURL: string;
@@ -12,6 +15,8 @@ interface GHSyncSettings {
 	syncinterval: number;
 	isSyncOnLoad: boolean;
 	checkStatusOnLoad: boolean;
+	noticeLevel: NoticeLevelSetting;
+	showSyncSuccessNotice: boolean;
 }
 
 const DEFAULT_SETTINGS: GHSyncSettings = {
@@ -20,6 +25,8 @@ const DEFAULT_SETTINGS: GHSyncSettings = {
 	syncinterval: 0,
 	isSyncOnLoad: false,
 	checkStatusOnLoad: true,
+	noticeLevel: 'ALL',
+	showSyncSuccessNotice: true,
 }
 
 
@@ -27,10 +34,37 @@ export default class GHSyncPlugin extends Plugin {
 
 	settings: GHSyncSettings;
 
+	private shouldShowNotice(severity: NoticeSeverity): boolean {
+		switch (this.settings.noticeLevel) {
+			case 'ERROR':
+				return severity === 'ERROR';
+			case 'WARNINGS':
+				return severity === 'WARNING' || severity === 'ERROR';
+			case 'ALL':
+			default:
+				return true;
+		}
+	}
+
+	private showNotice(message: unknown, severity: NoticeSeverity, timeout?: number): void {
+		if (!this.shouldShowNotice(severity)) {
+			return;
+		}
+
+		const text = message instanceof Error ? message.message : String(message);
+		new Notice(text, timeout);
+	}
+
+	private showSyncSuccessNotice(): void {
+		if (!this.settings.showSyncSuccessNotice) {
+			return;
+		}
+
+		new Notice('GitHub Sync: Sync successful');
+	}
+
 	async SyncNotes()
 	{
-		new Notice("Syncing to GitHub remote")
-
 		const remote = this.settings.remoteURL.trim();
 
 		simpleGitOptions = {
@@ -46,8 +80,12 @@ export default class GHSyncPlugin extends Plugin {
 		let hostname = os.hostname();
 
 		let statusResult = await git.status().catch((e) => {
-			new Notice("Vault is not a Git repo or git binary cannot be found.", 10000);
+			this.showNotice("Vault is not a Git repo or git binary cannot be found.", 'ERROR', 10000);
 			return; })
+
+		if (!statusResult) {
+			return;
+		}
 
 		//@ts-ignore
 		let clean = statusResult.isClean();
@@ -63,43 +101,38 @@ export default class GHSyncPlugin extends Plugin {
 		    		.add("./*")
 		    		.commit(msg);
 		    } catch (e) {
-		    	new Notice(e);
+		    	this.showNotice(e, 'ERROR', 10000);
 		    	return;
 		    }
-		} else {
-			new Notice("Working branch clean");
 		}
 
 		// configure remote
 		try {
-			await git.removeRemote('origin').catch((e) => { new Notice(e); });
-			await git.addRemote('origin', remote).catch((e) => { new Notice(e); });
+			await git.removeRemote('origin').catch((e) => { this.showNotice(e, 'ERROR', 10000); });
+			await git.addRemote('origin', remote).catch((e) => { this.showNotice(e, 'ERROR', 10000); });
 		}
 		catch (e) {
-			new Notice(e);
+			this.showNotice(e, 'ERROR', 10000);
 			return;
 		}
 		// check if remote url valid by fetching
 		try {
 			await git.fetch();
 		} catch (e) {
-			new Notice(e + "\nGitHub Sync: Invalid remote URL.", 10000);
+			this.showNotice(String(e) + "\nGitHub Sync: Invalid remote URL.", 'ERROR', 10000);
 			return;
 		}
-
-		new Notice("GitHub Sync: Successfully set remote origin url");
-
 
 		// git pull origin main
 	    try {
 	    	//@ts-ignore
 	    	await git.pull('origin', 'main', { '--no-rebase': null }, (err, update) => {
-	      		if (update) {
-					new Notice("GitHub Sync: Pulled " + update.summary.changes + " changes");
-	      		}
 	   		})
 	    } catch (e) {
-	    	let conflictStatus = await git.status().catch((e) => { new Notice(e, 10000); return; });
+	    	let conflictStatus = await git.status().catch((error) => { this.showNotice(error, 'ERROR', 10000); return; });
+	    	if (!conflictStatus) {
+	    		return;
+	    	}
     		let conflictMsg = "Merge conflicts in:";
 	    	//@ts-ignore
 			for (let c of conflictStatus.conflicted)
@@ -107,7 +140,7 @@ export default class GHSyncPlugin extends Plugin {
 				conflictMsg += "\n\t"+c;
 			}
 			conflictMsg += "\nResolve them or click sync button again to push with unresolved conflicts."
-			new Notice(conflictMsg)
+			this.showNotice(conflictMsg, 'WARNING');
 			//@ts-ignore	
 			for (let c of conflictStatus.conflicted)
 			{
@@ -120,12 +153,14 @@ export default class GHSyncPlugin extends Plugin {
 		// git push origin main
 	    if (!clean) {
 		    try {
-		    	git.push('origin', 'main', ['-u']);
-		    	new Notice("GitHub Sync: Pushed on " + msg);
+		    	await git.push('origin', 'main', ['-u']);
 		    } catch (e) {
-		    	new Notice(e, 10000);
+		    	this.showNotice(e, 'ERROR', 10000);
+		    	return;
 			}
 	    }
+
+		this.showSyncSuccessNotice();
 	}
 
 	async CheckStatusOnStart()
@@ -154,12 +189,12 @@ export default class GHSyncPlugin extends Plugin {
 				}
 				else
 				{
-					new Notice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.")
+					this.showNotice("GitHub Sync: " + statusUponOpening.behind + " commits behind remote.\nClick the GitHub ribbon icon to sync.", 'WARNING');
 				}
 			}
 			else
 			{
-				new Notice("GitHub Sync: up to date with remote.")
+				this.showNotice("GitHub Sync: up to date with remote.", 'INFO');
 			}
 		} catch (e) {
 			// don't care
@@ -196,7 +231,7 @@ export default class GHSyncPlugin extends Plugin {
 						await this.SyncNotes();
 					}, interval * 60 * 1000);
 					//this.registerInterval(setInterval(this.SyncNotes, interval * 6 * 1000));
-					new Notice("Auto sync enabled");
+					this.showNotice("Auto sync enabled", 'INFO');
 				} catch (e) {
 					
 				}
@@ -267,6 +302,29 @@ class GHSyncSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
         	.inputEl.addClass('my-plugin-setting-text2'));
+
+		new Setting(containerEl)
+			.setName('Notice level')
+			.setDesc('Choose which GitHub Sync notices are shown in the Obsidian UI.')
+			.addDropdown((dropdown) => dropdown
+				.addOption('ALL', 'ALL')
+				.addOption('WARNINGS', 'WARNINGS')
+				.addOption('ERROR', 'ERROR')
+				.setValue(this.plugin.settings.noticeLevel)
+				.onChange(async (value: NoticeLevelSetting) => {
+					this.plugin.settings.noticeLevel = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Show success message')
+			.setDesc('Show a single notice when a sync finishes successfully.')
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.showSyncSuccessNotice)
+				.onChange(async (value) => {
+					this.plugin.settings.showSyncSuccessNotice = value;
+					await this.plugin.saveSettings();
+				}));
 
 		new Setting(containerEl)
 			.setName('Check status on startup')
