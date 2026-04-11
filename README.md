@@ -58,10 +58,10 @@ The first time may prompt you to authenticate if you haven't, or it may ask you 
 
 You can reduce UI noise from sync operations with the `Notice level` setting:
 - `ALL` shows every GitHub Sync notice.
-- `WARNINGS` shows only warnings and errors.
+- `WARNING` shows only warnings and errors.
 - `ERROR` shows only error notices, so sync can run mostly in the background.
 
-You can also use `Show success message` to control whether a successful sync shows a confirmation notice. When enabled, successful syncs now show a single success message instead of multiple informational notices.
+You can also use `Hide Success Message` to suppress the single confirmation notice shown after a successful sync. With the toggle off and `Notice level` set to `ALL`, a successful sync shows exactly one success message instead of multiple informational notices.
 
 If your git binary is not accessible from your system PATH (i.e. if you open up Command Prompt or Terminal and can't use git), you need to provide its location. I initialize git only when launching Cmder, so I need to input a custom path like so: `C:/Users/Kevin/scoop/apps/cmder-full/current/vendor/git-for-windows/cmd/`. Note that I excluded `git.exe` from the end of the path.
 

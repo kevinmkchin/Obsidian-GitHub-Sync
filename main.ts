@@ -5,7 +5,8 @@ import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async';
 let simpleGitOptions: Partial<SimpleGitOptions>;
 let git: SimpleGit;
 
-type NoticeLevelSetting = 'ALL' | 'WARNINGS' | 'ERROR';
+type NoticeLevelSetting = 'ALL' | 'WARNING' | 'ERROR';
+type LegacyNoticeLevelSetting = NoticeLevelSetting | 'WARNINGS';
 type NoticeSeverity = 'INFO' | 'WARNING' | 'ERROR';
 
 
@@ -38,7 +39,7 @@ export default class GHSyncPlugin extends Plugin {
 		switch (this.settings.noticeLevel) {
 			case 'ERROR':
 				return severity === 'ERROR';
-			case 'WARNINGS':
+			case 'WARNING':
 				return severity === 'WARNING' || severity === 'ERROR';
 			case 'ALL':
 			default:
@@ -60,7 +61,7 @@ export default class GHSyncPlugin extends Plugin {
 			return;
 		}
 
-		new Notice('GitHub Sync: Sync successful');
+		this.showNotice('GitHub Sync: Sync successful', 'INFO');
 	}
 
 	async SyncNotes()
@@ -250,6 +251,10 @@ export default class GHSyncPlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+		if ((this.settings.noticeLevel as LegacyNoticeLevelSetting) === 'WARNINGS') {
+			this.settings.noticeLevel = 'WARNING';
+		}
 	}
 
 	async saveSettings() {
@@ -308,7 +313,7 @@ class GHSyncSettingTab extends PluginSettingTab {
 			.setDesc('Choose which GitHub Sync notices are shown in the Obsidian UI.')
 			.addDropdown((dropdown) => dropdown
 				.addOption('ALL', 'ALL')
-				.addOption('WARNINGS', 'WARNINGS')
+				.addOption('WARNING', 'WARNING')
 				.addOption('ERROR', 'ERROR')
 				.setValue(this.plugin.settings.noticeLevel)
 				.onChange(async (value: NoticeLevelSetting) => {
@@ -317,12 +322,12 @@ class GHSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Show success message')
-			.setDesc('Show a single notice when a sync finishes successfully.')
+			.setName('Hide Success Message')
+			.setDesc('Hide the single success notice shown when a sync finishes successfully.')
 			.addToggle((toggle) => toggle
-				.setValue(this.plugin.settings.showSyncSuccessNotice)
+				.setValue(!this.plugin.settings.showSyncSuccessNotice)
 				.onChange(async (value) => {
-					this.plugin.settings.showSyncSuccessNotice = value;
+					this.plugin.settings.showSyncSuccessNotice = !value;
 					await this.plugin.saveSettings();
 				}));
 
