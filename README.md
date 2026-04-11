@@ -1,3 +1,6 @@
+### Changelog 1.0.7
+- Simplified the sync success notice so successful runs show a shorter confirmation message.
+
 ### Changelog 1.0.6
 - Plugin loads faster on start up
 
@@ -14,6 +17,11 @@
 # GitHub Sync
 
 Simple plugin that allows you to sync your vault to a personal GitHub repo for **syncing across devices**.
+
+## Highlights
+- Sync your vault with a single ribbon action.
+- Reduce notice noise with configurable notice levels.
+- Keep the success notice to one short confirmation message or hide it entirely.
 
 ![](screenshots/ribbon-button.png)
 
