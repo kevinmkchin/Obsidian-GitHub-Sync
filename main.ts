@@ -1,5 +1,5 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Vault } from 'obsidian';
-import { simpleGit, SimpleGit, CleanOptions, SimpleGitOptions } from 'simple-git';
+import { simpleGit, SimpleGit, CleanOptions, SimpleGitOptions, StatusResult, DiffResult } from 'simple-git';
 import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async';
 
 let simpleGitOptions: Partial<SimpleGitOptions>;
@@ -56,12 +56,77 @@ export default class GHSyncPlugin extends Plugin {
 		new Notice(text, timeout);
 	}
 
-	private showSyncSuccessNotice(): void {
+	private formatDiffFiles(diff: DiffResult | undefined): string[] {
+		if (!diff) {
+			return [];
+		}
+		return diff.files.map((f) => {
+			const stats = 'insertions' in f ? " (+" + f.insertions + " -" + f.deletions + ")" : " (binary)";
+			return f.file + stats;
+		});
+	}
+
+	private showSyncSuccessNotice(pushed?: DiffResult, pulled?: DiffResult): void {
 		if (!this.settings.showSyncSuccessNotice) {
 			return;
 		}
 
-		this.showNotice('github sync successful', 'INFO');
+		const maxListed = 5;
+		const lines: string[] = ['github sync successful'];
+		const section = (arrow: string, label: string, files: string[]) => {
+			if (files.length === 0) {
+				return;
+			}
+			lines.push(arrow + " " + files.length + " " + label);
+			for (const f of files.slice(0, maxListed)) {
+				lines.push("\t" + f);
+			}
+			if (files.length > maxListed) {
+				lines.push("\t... and " + (files.length - maxListed) + " more");
+			}
+		};
+		section("\u2191", "pushed", this.formatDiffFiles(pushed));
+		section("\u2193", "pulled", this.formatDiffFiles(pulled));
+
+		this.showNotice(lines.join("\n"), 'INFO', lines.length > 1 ? 8000 : undefined);
+	}
+
+	private buildCommitMessage(status: StatusResult, diff: DiffResult | undefined, hostname: string): string[] {
+		const entries: string[] = [];
+		const counts: string[] = [];
+
+		const stats = new Map<string, string>();
+		for (const f of diff?.files ?? []) {
+			stats.set(f.file, 'insertions' in f ? " (+" + f.insertions + " -" + f.deletions + ")" : " (binary)");
+		}
+
+		const add = (label: string, code: string, files: string[]) => {
+			if (files.length === 0) {
+				return;
+			}
+			counts.push(files.length + " " + label);
+			for (const f of files) {
+				entries.push(code + " " + f + (stats.get(f) ?? ""));
+			}
+		};
+
+		const renamed = status.renamed.map((r) => r.from + " -> " + r.to);
+		const created = Array.from(new Set([...status.created, ...status.not_added]));
+		add("added", "A", created);
+		add("modified", "M", status.modified);
+		add("deleted", "D", status.deleted);
+		add("renamed", "R", renamed);
+
+		const total = diff ? " +" + diff.insertions + " -" + diff.deletions : "";
+		const subject = "vault: sync from " + hostname + (counts.length > 0 ? " (" + counts.join(", ") + total + ")" : "");
+
+		const maxListed = 30;
+		const body = entries.slice(0, maxListed);
+		if (entries.length > maxListed) {
+			body.push("... and " + (entries.length - maxListed) + " more");
+		}
+
+		return body.length > 0 ? [subject, body.join("\n")] : [subject];
 	}
 
 	async SyncNotes()
@@ -91,16 +156,15 @@ export default class GHSyncPlugin extends Plugin {
 		//@ts-ignore
 		let clean = statusResult.isClean();
 
-    	let date = new Date();
-    	let msg = hostname + " " + date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + ":" + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+		let pushedDiff: DiffResult | undefined;
 
 		// git add .
-		// git commit -m hostname-date-time
+		// git commit -m "vault: sync from <hostname> (<summary>)" -m "<file list>"
 		if (!clean) {
 			try {
-				await git
-		    		.add("./*")
-		    		.commit(msg);
+				await git.add("./*");
+				pushedDiff = await git.diffSummary(['--cached']).catch(() => undefined);
+				await git.commit(this.buildCommitMessage(statusResult, pushedDiff, hostname));
 		    } catch (e) {
 		    	this.showNotice(e, 'ERROR', 10000);
 		    	return;
@@ -124,11 +188,18 @@ export default class GHSyncPlugin extends Plugin {
 			return;
 		}
 
-		// git pull origin main
+		// remote changes about to be pulled (merge-base..origin/main)
+		const pulledDiff = await git.diffSummary(['HEAD...origin/main']).catch(() => undefined);
+
+		// git pull --rebase origin main (linear history, no merge commits)
+		// on rebase conflict: abort, then retry as a merge so conflicts can be resolved as before
 	    try {
-	    	//@ts-ignore
-	    	await git.pull('origin', 'main', { '--no-rebase': null }, (err, update) => {
-	   		})
+	    	try {
+	    		await git.pull('origin', 'main', { '--rebase': null });
+	    	} catch (rebaseError) {
+	    		await git.rebase(['--abort']).catch(() => {});
+	    		await git.pull('origin', 'main', { '--no-rebase': null });
+	    	}
 	    } catch (e) {
 	    	let conflictStatus = await git.status().catch((error) => { this.showNotice(error, 'ERROR', 10000); return; });
 	    	if (!conflictStatus) {
@@ -161,7 +232,7 @@ export default class GHSyncPlugin extends Plugin {
 			}
 	    }
 
-		this.showSyncSuccessNotice();
+		this.showSyncSuccessNotice(clean ? undefined : pushedDiff, pulledDiff);
 	}
 
 	async CheckStatusOnStart()
